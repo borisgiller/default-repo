@@ -427,41 +427,48 @@ def save_to_database(data_list):
                     ','.join(data.get('all_images', []))  # all image URLs as comma-separated string
                 )
                 cursor.execute(insert_sql, insert_values)
-
-            conn.commit()
-            print(f"Successfully saved {len(data_list)} listings to database")
-            
-            # Verify the saved data
-            try:
-                verify_cursor = conn.cursor()
-                verify_cursor.execute("""
-                    SELECT property_id, main_image, LENGTH(all_images) as img_count 
-                    FROM property_listings 
-                    ORDER BY id DESC LIMIT 1
-                """)
-                result = verify_cursor.fetchone()
                 
-                # Clear any remaining result sets
-                while verify_cursor.nextset():
-                    pass
-                    
-                if result:
-                    print("\nVerification of saved data:")
-                    print(f"Property ID: {result[0]}")
-                    print(f"Main image: {result[1]}")
-                    print(f"All images length: {result[2]} characters")
-            finally:
-                verify_cursor.close()
+                conn.commit()
+                print(f"Successfully saved listing with ID: {data.get('property_id')}")
 
-        except Exception as e:
-            print(f"Error saving to database: {str(e)}")
-            if conn:
+            except Exception as e:
+                print(f"Error processing listing {data.get('property_id')}: {str(e)}")
                 conn.rollback()
+                continue
+
+        print(f"\nFinished processing {len(data_list)} listings")
+            
+        # Verify the last saved data
+        try:
+            verify_cursor = conn.cursor()
+            verify_cursor.execute("""
+                SELECT property_id, main_image, LENGTH(all_images) as img_count 
+                FROM property_listings 
+                ORDER BY id DESC LIMIT 1
+            """)
+            result = verify_cursor.fetchone()
+            
+            # Clear any remaining result sets
+            while verify_cursor.nextset():
+                pass
+                
+            if result:
+                print("\nVerification of last saved data:")
+                print(f"Property ID: {result[0]}")
+                print(f"Main image: {result[1]}")
+                print(f"All images length: {result[2]} characters")
         finally:
-            if cursor:
-                cursor.close()
-            if conn:
-                conn.close()
+            verify_cursor.close()
+
+    except Exception as e:
+        print(f"Error connecting to database: {str(e)}")
+        if conn:
+            conn.rollback()
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
 
 def get_listing_urls(page_url):
     response = requests.get(page_url)
