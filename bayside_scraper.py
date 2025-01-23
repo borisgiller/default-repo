@@ -369,8 +369,8 @@ def save_to_database(data_list):
                     pass
                     
                 if existing:
-                # Update existing listing but preserve isnew status
-                update_values = (
+                    # Update existing listing but preserve isnew status
+                    update_values = (
                     data.get('title'),
                     data.get('status'),
                     float(data.get('price', 0)) if data.get('price') else 0,
