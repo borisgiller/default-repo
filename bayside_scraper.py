@@ -359,12 +359,16 @@ def save_to_database(data_list):
         """
 
         for data in data_list:
-            # Check if listing already exists
-            cursor.execute(check_existing_sql, (data.get('property_id'),))
-            existing = cursor.fetchone()
-            cursor.nextset()  # Clear any unread results
-            
-            if existing:
+            try:
+                # Check if listing already exists
+                cursor.execute(check_existing_sql, (data.get('property_id'),))
+                existing = cursor.fetchone()
+                
+                # Keep fetching until no more results
+                while cursor.nextset():
+                    pass
+                    
+                if existing:
                 # Update existing listing but preserve isnew status
                 update_values = (
                     data.get('title'),
@@ -428,19 +432,26 @@ def save_to_database(data_list):
         print(f"Successfully saved {len(data_list)} listings to database")
         
         # Verify the saved data
-        verify_cursor = conn.cursor()
-        verify_cursor.execute("""
-            SELECT property_id, main_image, LENGTH(all_images) as img_count 
-            FROM property_listings 
-            ORDER BY id DESC LIMIT 1
-        """)
-        result = verify_cursor.fetchone()
-        if result:
-            print("\nVerification of saved data:")
-            print(f"Property ID: {result[0]}")
-            print(f"Main image: {result[1]}")
-            print(f"All images length: {result[2]} characters")
-        verify_cursor.close()
+        try:
+            verify_cursor = conn.cursor()
+            verify_cursor.execute("""
+                SELECT property_id, main_image, LENGTH(all_images) as img_count 
+                FROM property_listings 
+                ORDER BY id DESC LIMIT 1
+            """)
+            result = verify_cursor.fetchone()
+            
+            # Clear any remaining result sets
+            while verify_cursor.nextset():
+                pass
+                
+            if result:
+                print("\nVerification of saved data:")
+                print(f"Property ID: {result[0]}")
+                print(f"Main image: {result[1]}")
+                print(f"All images length: {result[2]} characters")
+        finally:
+            verify_cursor.close()
 
     except Exception as e:
         print(f"Error saving to database: {str(e)}")
