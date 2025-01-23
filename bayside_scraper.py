@@ -272,7 +272,7 @@ def save_to_database(data_list):
         'user': 'root',
         'password': 'rMoaqPfFxeerOSJXPZAXJfZknAiPMSGP',
         'database': 'railway',
-        'port': 25520
+        'port': 3306
     }
 
     try:
