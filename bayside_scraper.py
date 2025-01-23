@@ -398,17 +398,17 @@ def save_to_database(data_list):
                     )
                     cursor.execute(update_sql, update_values)
                 else:
-                # Insert new listing with isnew=True
-                insert_values = (
-                    data.get('property_id'),
-                    data.get('title'),
-                    data.get('status'),
-                    float(data.get('price', 0)) if data.get('price') else 0,
-                    data.get('currency'),
-                    data.get('description'),
-                    data.get('area'),
-                    data.get('city'),
-                    data.get('state'),
+                    # Insert new listing with isnew=True
+                    insert_values = (
+                        data.get('property_id'),
+                        data.get('title'),
+                        data.get('status'),
+                        float(data.get('price', 0)) if data.get('price') else 0,
+                        data.get('currency'),
+                        data.get('description'),
+                        data.get('area'),
+                        data.get('city'),
+                        data.get('state'),
                     data.get('country'),
                     data.get('interior_space'),
                     data.get('land_size'),
