@@ -303,8 +303,6 @@ def save_to_database(data_list):
             status VARCHAR(50),
             isnew BOOLEAN DEFAULT TRUE,
             price DECIMAL(15,2),
-            main_image VARCHAR(1024),
-            all_images TEXT,
             currency VARCHAR(10),
             description TEXT,
             area VARCHAR(100),
@@ -322,7 +320,15 @@ def save_to_database(data_list):
             latitude VARCHAR(20),
             longitude VARCHAR(20),
             url VARCHAR(255),
-            scrape_date DATETIME
+            scrape_date DATETIME,
+            main_image VARCHAR(2048),
+            all_images LONGTEXT,
+            image_captions TEXT,
+            features_list TEXT,
+            virtual_tour_url VARCHAR(1024),
+            map_zoom VARCHAR(10),
+            agent_photo VARCHAR(1024),
+            agent_bio TEXT
         )
         """
         cursor.execute(create_table_sql)
