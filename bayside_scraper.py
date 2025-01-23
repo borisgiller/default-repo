@@ -202,13 +202,29 @@ def scrape_listing(url):
         data['agent_bio'] = agent_bio.text.strip() if agent_bio else ''
         
         # Media Content
-        main_image_elem = soup.select_one('#carousel-listing .item.active img')
-        data['main_image'] = main_image_elem['src'] if main_image_elem else ''
-        
-        # All images with captions
-        all_images_elems = soup.select('#carousel-listing .item img')
-        data['all_images'] = [img['src'] for img in all_images_elems]
-        data['image_captions'] = [img.get('alt', '') for img in all_images_elems]
+        # Get all image URLs from carousel
+        carousel = soup.select_one('#carousel-listing .carousel-inner')
+        if carousel:
+            # Get main (active) image
+            main_image_elem = carousel.select_one('.item.active img')
+            data['main_image'] = main_image_elem['src'] if main_image_elem else ''
+            
+            # Get all images including those in lazy-load items
+            all_images = []
+            
+            # Direct image sources
+            for img in carousel.select('.item img'):
+                if img.get('src'):
+                    all_images.append(img['src'])
+                    
+            # Lazy load images
+            for img in carousel.select('.item.lazy-load-item img'):
+                lazy_src = img.get('data-lazy-load-src')
+                if lazy_src and lazy_src not in all_images:
+                    all_images.append(lazy_src)
+                    
+            data['all_images'] = all_images
+            data['image_captions'] = [img.get('alt', '') for img in carousel.select('.item img')]
         
         # Virtual Tour
         virtual_tour = soup.select_one('iframe[src*="virtualtour"]')
