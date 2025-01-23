@@ -270,6 +270,7 @@ def save_to_database(data_list):
             property_id VARCHAR(50),
             title VARCHAR(255),
             status VARCHAR(50),
+            isnew BOOLEAN DEFAULT TRUE,
             price DECIMAL(15,2),
             currency VARCHAR(10),
             description TEXT,
@@ -293,45 +294,96 @@ def save_to_database(data_list):
         """
         cursor.execute(create_table_sql)
 
-        # Insert data
+        # Check and insert data
+        check_existing_sql = """
+        SELECT property_id, isnew FROM property_listings 
+        WHERE property_id = %s
+        """
+        
         insert_sql = """
         INSERT INTO property_listings (
             property_id, title, status, price, currency, description,
             area, city, state, country, interior_space, land_size,
             bedrooms, bathrooms, parking_spaces, agent_name,
-            agent_phone, agent_email, latitude, longitude, url, scrape_date
+            agent_phone, agent_email, latitude, longitude, url, scrape_date,
+            isnew
         ) VALUES (
             %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+            %s
         )
         """
 
+        update_sql = """
+        UPDATE property_listings SET
+            title=%s, status=%s, price=%s, currency=%s, description=%s,
+            area=%s, city=%s, state=%s, country=%s, interior_space=%s, 
+            land_size=%s, bedrooms=%s, bathrooms=%s, parking_spaces=%s, 
+            agent_name=%s, agent_phone=%s, agent_email=%s, latitude=%s, 
+            longitude=%s, url=%s, scrape_date=%s
+        WHERE property_id=%s
+        """
+
         for data in data_list:
-            values = (
-                data.get('property_id'),
-                data.get('title'),
-                data.get('status'),
-                float(data.get('price', 0)) if data.get('price') else 0,
-                data.get('currency'),
-                data.get('description'),
-                data.get('area'),
-                data.get('city'),
-                data.get('state'),
-                data.get('country'),
-                data.get('interior_space'),
-                data.get('land_size'),
-                data.get('bedrooms'),
-                data.get('bathrooms'),
-                data.get('parking_spaces'),
-                data.get('agent_name'),
-                data.get('agent_phone'),
-                data.get('agent_email'),
-                data.get('latitude'),
-                data.get('longitude'),
-                data.get('url'),
-                data.get('scrape_date')
-            )
-            cursor.execute(insert_sql, values)
+            # Check if listing already exists
+            cursor.execute(check_existing_sql, (data.get('property_id'),))
+            existing = cursor.fetchone()
+            
+            if existing:
+                # Update existing listing but preserve isnew status
+                update_values = (
+                    data.get('title'),
+                    data.get('status'),
+                    float(data.get('price', 0)) if data.get('price') else 0,
+                    data.get('currency'),
+                    data.get('description'),
+                    data.get('area'),
+                    data.get('city'),
+                    data.get('state'),
+                    data.get('country'),
+                    data.get('interior_space'),
+                    data.get('land_size'),
+                    data.get('bedrooms'),
+                    data.get('bathrooms'),
+                    data.get('parking_spaces'),
+                    data.get('agent_name'),
+                    data.get('agent_phone'),
+                    data.get('agent_email'),
+                    data.get('latitude'),
+                    data.get('longitude'),
+                    data.get('url'),
+                    data.get('scrape_date'),
+                    data.get('property_id')
+                )
+                cursor.execute(update_sql, update_values)
+            else:
+                # Insert new listing with isnew=True
+                insert_values = (
+                    data.get('property_id'),
+                    data.get('title'),
+                    data.get('status'),
+                    float(data.get('price', 0)) if data.get('price') else 0,
+                    data.get('currency'),
+                    data.get('description'),
+                    data.get('area'),
+                    data.get('city'),
+                    data.get('state'),
+                    data.get('country'),
+                    data.get('interior_space'),
+                    data.get('land_size'),
+                    data.get('bedrooms'),
+                    data.get('bathrooms'),
+                    data.get('parking_spaces'),
+                    data.get('agent_name'),
+                    data.get('agent_phone'),
+                    data.get('agent_email'),
+                    data.get('latitude'),
+                    data.get('longitude'),
+                    data.get('url'),
+                    data.get('scrape_date'),
+                    True  # isnew flag
+                )
+                cursor.execute(insert_sql, insert_values)
 
         conn.commit()
         print(f"Successfully saved {len(data_list)} listings to database")
