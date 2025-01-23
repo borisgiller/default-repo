@@ -426,6 +426,21 @@ def save_to_database(data_list):
 
         conn.commit()
         print(f"Successfully saved {len(data_list)} listings to database")
+        
+        # Verify the saved data
+        verify_cursor = conn.cursor()
+        verify_cursor.execute("""
+            SELECT property_id, main_image, LENGTH(all_images) as img_count 
+            FROM property_listings 
+            ORDER BY id DESC LIMIT 1
+        """)
+        result = verify_cursor.fetchone()
+        if result:
+            print("\nVerification of saved data:")
+            print(f"Property ID: {result[0]}")
+            print(f"Main image: {result[1]}")
+            print(f"All images length: {result[2]} characters")
+        verify_cursor.close()
 
     except Exception as e:
         print(f"Error saving to database: {str(e)}")
