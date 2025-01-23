@@ -9,10 +9,15 @@ import re
 import random
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
-from scraper_logging import setup_logging
+
+import logging
 
 # Initialize logging
-logger = setup_logging()
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 # Configure retry strategy
 retry_strategy = Retry(
