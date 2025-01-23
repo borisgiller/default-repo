@@ -371,33 +371,33 @@ def save_to_database(data_list):
                 if existing:
                     # Update existing listing but preserve isnew status
                     update_values = (
-                    data.get('title'),
-                    data.get('status'),
-                    float(data.get('price', 0)) if data.get('price') else 0,
-                    data.get('currency'),
-                    data.get('description'),
-                    data.get('area'),
-                    data.get('city'),
-                    data.get('state'),
-                    data.get('country'),
-                    data.get('interior_space'),
-                    data.get('land_size'),
-                    data.get('bedrooms'),
-                    data.get('bathrooms'),
-                    data.get('parking_spaces'),
-                    data.get('agent_name'),
-                    data.get('agent_phone'),
-                    data.get('agent_email'),
-                    data.get('latitude'),
-                    data.get('longitude'),
-                    data.get('url'),
-                    data.get('scrape_date'),
-                    data.get('main_image'),
-                    ','.join(data.get('all_images', [])),
-                    data.get('property_id')
-                )
-                cursor.execute(update_sql, update_values)
-            else:
+                        data.get('title'),
+                        data.get('status'),
+                        float(data.get('price', 0)) if data.get('price') else 0,
+                        data.get('currency'),
+                        data.get('description'),
+                        data.get('area'),
+                        data.get('city'),
+                        data.get('state'),
+                        data.get('country'),
+                        data.get('interior_space'),
+                        data.get('land_size'),
+                        data.get('bedrooms'),
+                        data.get('bathrooms'),
+                        data.get('parking_spaces'),
+                        data.get('agent_name'),
+                        data.get('agent_phone'),
+                        data.get('agent_email'),
+                        data.get('latitude'),
+                        data.get('longitude'),
+                        data.get('url'),
+                        data.get('scrape_date'),
+                        data.get('main_image'),
+                        ','.join(data.get('all_images', [])),
+                        data.get('property_id')
+                    )
+                    cursor.execute(update_sql, update_values)
+                else:
                 # Insert new listing with isnew=True
                 insert_values = (
                     data.get('property_id'),
