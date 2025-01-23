@@ -272,6 +272,8 @@ def save_to_database(data_list):
             status VARCHAR(50),
             isnew BOOLEAN DEFAULT TRUE,
             price DECIMAL(15,2),
+            main_image_url TEXT,
+            all_image_urls TEXT,
             currency VARCHAR(10),
             description TEXT,
             area VARCHAR(100),
@@ -306,11 +308,11 @@ def save_to_database(data_list):
             area, city, state, country, interior_space, land_size,
             bedrooms, bathrooms, parking_spaces, agent_name,
             agent_phone, agent_email, latitude, longitude, url, scrape_date,
-            isnew
+            isnew, main_image_url, all_image_urls
         ) VALUES (
             %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
             %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-            %s
+            %s, %s, %s
         )
         """
 
@@ -320,7 +322,8 @@ def save_to_database(data_list):
             area=%s, city=%s, state=%s, country=%s, interior_space=%s, 
             land_size=%s, bedrooms=%s, bathrooms=%s, parking_spaces=%s, 
             agent_name=%s, agent_phone=%s, agent_email=%s, latitude=%s, 
-            longitude=%s, url=%s, scrape_date=%s
+            longitude=%s, url=%s, scrape_date=%s,
+            main_image_url=%s, all_image_urls=%s
         WHERE property_id=%s
         """
 
@@ -353,6 +356,8 @@ def save_to_database(data_list):
                     data.get('longitude'),
                     data.get('url'),
                     data.get('scrape_date'),
+                    data.get('main_image'),
+                    ','.join(data.get('all_images', [])),
                     data.get('property_id')
                 )
                 cursor.execute(update_sql, update_values)
@@ -381,7 +386,9 @@ def save_to_database(data_list):
                     data.get('longitude'),
                     data.get('url'),
                     data.get('scrape_date'),
-                    True  # isnew flag
+                    True,  # isnew flag
+                    data.get('main_image'),  # main image URL
+                    ','.join(data.get('all_images', []))  # all image URLs as comma-separated string
                 )
                 cursor.execute(insert_sql, insert_values)
 
