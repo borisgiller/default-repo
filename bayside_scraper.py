@@ -1,6 +1,6 @@
 import requests
 from bs4 import BeautifulSoup
-import csv
+import mysql.connector
 from urllib.parse import urljoin
 import time
 import sys
@@ -246,20 +246,105 @@ def scrape_listing(url):
         logger.error(f"Error scraping listing {url}: {str(e)}")
         raise
 
-def save_to_csv(data_list, filename='bayside_listings.csv'):
+def save_to_database(data_list):
     if not data_list:
         print("No data to save.")
         return
-    
-    fieldnames = data_list[0].keys()
-    
-    with open(filename, 'w', newline='', encoding='utf-8') as csvfile:
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        writer.writeheader()
+
+    db_config = {
+        'host': 'mysql.railway.internal',
+        'user': 'root',
+        'password': 'rMoaqPfFxeerOSJXPZAXJfZknAiPMSGP',
+        'database': 'railway',
+        'port': 3306
+    }
+
+    try:
+        conn = mysql.connector.connect(**db_config)
+        cursor = conn.cursor()
+
+        # Create table if it doesn't exist
+        create_table_sql = """
+        CREATE TABLE IF NOT EXISTS property_listings (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            property_id VARCHAR(50),
+            title VARCHAR(255),
+            status VARCHAR(50),
+            price DECIMAL(15,2),
+            currency VARCHAR(10),
+            description TEXT,
+            area VARCHAR(100),
+            city VARCHAR(100),
+            state VARCHAR(100),
+            country VARCHAR(100),
+            interior_space VARCHAR(50),
+            land_size VARCHAR(50),
+            bedrooms VARCHAR(10),
+            bathrooms VARCHAR(10),
+            parking_spaces VARCHAR(10),
+            agent_name VARCHAR(100),
+            agent_phone VARCHAR(50),
+            agent_email VARCHAR(100),
+            latitude VARCHAR(20),
+            longitude VARCHAR(20),
+            url VARCHAR(255),
+            scrape_date DATETIME
+        )
+        """
+        cursor.execute(create_table_sql)
+
+        # Insert data
+        insert_sql = """
+        INSERT INTO property_listings (
+            property_id, title, status, price, currency, description,
+            area, city, state, country, interior_space, land_size,
+            bedrooms, bathrooms, parking_spaces, agent_name,
+            agent_phone, agent_email, latitude, longitude, url, scrape_date
+        ) VALUES (
+            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+        )
+        """
+
         for data in data_list:
-            writer.writerow(data)
-    
-    print(f"Data saved to {filename}")
+            values = (
+                data.get('property_id'),
+                data.get('title'),
+                data.get('status'),
+                float(data.get('price', 0)) if data.get('price') else 0,
+                data.get('currency'),
+                data.get('description'),
+                data.get('area'),
+                data.get('city'),
+                data.get('state'),
+                data.get('country'),
+                data.get('interior_space'),
+                data.get('land_size'),
+                data.get('bedrooms'),
+                data.get('bathrooms'),
+                data.get('parking_spaces'),
+                data.get('agent_name'),
+                data.get('agent_phone'),
+                data.get('agent_email'),
+                data.get('latitude'),
+                data.get('longitude'),
+                data.get('url'),
+                data.get('scrape_date')
+            )
+            cursor.execute(insert_sql, values)
+
+        conn.commit()
+        print(f"Successfully saved {len(data_list)} listings to database")
+
+    except Exception as e:
+        print(f"Error saving to database: {str(e)}")
+        if conn:
+            conn.rollback()
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
 
 def get_listing_urls(page_url):
     response = requests.get(page_url)
@@ -326,7 +411,7 @@ def main():
     
     finally:
         if all_listings_data:
-            save_to_csv(all_listings_data)
+            save_to_database(all_listings_data)
         
         total_time = datetime.now() - start_time
         print(f"\nScraping completed. Total listings scraped: {total_listings}")
