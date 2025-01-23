@@ -31,10 +31,11 @@ session.mount("https://", adapter)
 session.mount("http://", adapter)
 
 # Constants
+TEST_MODE = True  # Set to True to only scrape 1 listing for testing
 MIN_DELAY = 2  # Minimum delay between requests in seconds
 MAX_DELAY = 5  # Maximum delay between requests in seconds
 
-MAX_LISTINGS = 35  # Set this to slightly more than the expected number of listings
+MAX_LISTINGS = 1 if TEST_MODE else 35  # Limit listings based on test mode
 
 def extract_gps_coordinates(soup):
     """Extract GPS coordinates from the listing page"""
@@ -225,6 +226,13 @@ def scrape_listing(url):
                     
             data['all_images'] = all_images
             data['image_captions'] = [img.get('alt', '') for img in carousel.select('.item img')]
+            
+            # Debug output for images
+            print("\nImage URLs found:")
+            print(f"Main image: {data['main_image']}")
+            print("All images:")
+            for idx, img in enumerate(all_images, 1):
+                print(f"{idx}. {img}")
         
         # Virtual Tour
         virtual_tour = soup.select_one('iframe[src*="virtualtour"]')
@@ -266,6 +274,13 @@ def save_to_database(data_list):
     if not data_list:
         print("No data to save.")
         return
+        
+    if TEST_MODE:
+        print("\nDEBUG: Data being saved to database:")
+        for data in data_list:
+            print(f"\nProperty ID: {data.get('property_id')}")
+            print(f"Main image: {data.get('main_image')}")
+            print(f"Number of additional images: {len(data.get('all_images', []))}")
 
     db_config = {
         'host': 'junction.proxy.rlwy.net',
