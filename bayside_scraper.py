@@ -339,7 +339,7 @@ def save_to_database(data_list):
             area, city, state, country, interior_space, land_size,
             bedrooms, bathrooms, parking_spaces, agent_name,
             agent_phone, agent_email, latitude, longitude, url, scrape_date,
-            isnew, main_image_url, all_image_urls
+            isnew, main_image, all_images
         ) VALUES (
             %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
             %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
@@ -354,7 +354,7 @@ def save_to_database(data_list):
             land_size=%s, bedrooms=%s, bathrooms=%s, parking_spaces=%s, 
             agent_name=%s, agent_phone=%s, agent_email=%s, latitude=%s, 
             longitude=%s, url=%s, scrape_date=%s,
-            main_image_url=%s, all_image_urls=%s
+            main_image=%s, all_images=%s
         WHERE property_id=%s
         """
 
@@ -362,6 +362,7 @@ def save_to_database(data_list):
             # Check if listing already exists
             cursor.execute(check_existing_sql, (data.get('property_id'),))
             existing = cursor.fetchone()
+            cursor.nextset()  # Clear any unread results
             
             if existing:
                 # Update existing listing but preserve isnew status
