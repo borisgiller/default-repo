@@ -268,7 +268,7 @@ def save_to_database(data_list):
         return
 
     db_config = {
-        'host': 'junction.proxy.rlwy.net',
+        'host': 'mysql.railway.internal',
         'user': 'root',
         'password': 'rMoaqPfFxeerOSJXPZAXJfZknAiPMSGP',
         'database': 'railway',
