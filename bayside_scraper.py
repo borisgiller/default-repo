@@ -374,11 +374,12 @@ def save_to_database(data_list):
             area, city, state, country, interior_space, land_size,
             bedrooms, bathrooms, parking_spaces, agent_name,
             agent_phone, agent_email, latitude, longitude, url, scrape_date,
-            isnew, main_image, all_images
+            isnew, main_image, all_images, image_captions, features_list, 
+            virtual_tour_url, map_zoom, agent_photo
         ) VALUES (
             %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
             %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-            %s, %s, %s
+            %s, %s, %s, %s, %s, %s, %s, %s
         )
         """
 
@@ -428,7 +429,12 @@ def save_to_database(data_list):
                         data.get('url'),
                         data.get('scrape_date'),
                         data.get('main_image'),
-                        ','.join(data.get('all_images', [])),
+                        '\n'.join(data.get('all_images', [])),
+                        '\n'.join(data.get('image_captions', [])),
+                        '\n'.join(data.get('features_list', [])),
+                        data.get('virtual_tour_url', ''),
+                        data.get('map_zoom', ''),
+                        data.get('agent_photo', ''),
                         data.get('property_id')
                     )
                     cursor.execute(update_sql, update_values)
@@ -444,23 +450,28 @@ def save_to_database(data_list):
                         data.get('area'),
                         data.get('city'),
                         data.get('state'),
-                    data.get('country'),
-                    data.get('interior_space'),
-                    data.get('land_size'),
-                    data.get('bedrooms'),
-                    data.get('bathrooms'),
-                    data.get('parking_spaces'),
-                    data.get('agent_name'),
-                    data.get('agent_phone'),
-                    data.get('agent_email'),
-                    data.get('latitude'),
-                    data.get('longitude'),
-                    data.get('url'),
-                    data.get('scrape_date'),
-                    True,  # isnew flag
-                    data.get('main_image'),  # main image URL
-                    ','.join(data.get('all_images', []))  # all image URLs as comma-separated string
-                )
+                        data.get('country'),
+                        data.get('interior_space'),
+                        data.get('land_size'),
+                        data.get('bedrooms'),
+                        data.get('bathrooms'),
+                        data.get('parking_spaces'),
+                        data.get('agent_name'),
+                        data.get('agent_phone'),
+                        data.get('agent_email'),
+                        data.get('latitude'),
+                        data.get('longitude'),
+                        data.get('url'),
+                        data.get('scrape_date'),
+                        True,  # isnew flag
+                        data.get('main_image'),  # main image URL
+                        '\n'.join(data.get('all_images', [])),  # all image URLs as newline-separated string
+                        '\n'.join(data.get('image_captions', [])),  # image captions
+                        '\n'.join(data.get('features_list', [])),  # features list
+                        data.get('virtual_tour_url', ''),  # virtual tour URL
+                        data.get('map_zoom', ''),  # map zoom level
+                        data.get('agent_photo', '')  # agent photo URL
+                    )
                 cursor.execute(insert_sql, insert_values)
                 
                 conn.commit()
