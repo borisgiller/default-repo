@@ -336,18 +336,28 @@ def save_to_database(data_list):
         
         # Then check and add any missing columns
         try:
-            alter_table_sql = """
-            ALTER TABLE property_listings
-            ADD COLUMN IF NOT EXISTS main_image VARCHAR(2048),
-            ADD COLUMN IF NOT EXISTS all_images LONGTEXT,
-            ADD COLUMN IF NOT EXISTS image_captions TEXT,
-            ADD COLUMN IF NOT EXISTS features_list TEXT,
-            ADD COLUMN IF NOT EXISTS virtual_tour_url VARCHAR(1024),
-            ADD COLUMN IF NOT EXISTS map_zoom VARCHAR(10),
-            ADD COLUMN IF NOT EXISTS agent_photo VARCHAR(1024),
-            ADD COLUMN IF NOT EXISTS agent_bio TEXT
-            """
-            cursor.execute(alter_table_sql)
+            # Check and add columns one by one
+            columns_to_add = {
+                'main_image': 'VARCHAR(2048)',
+                'all_images': 'LONGTEXT',
+                'image_captions': 'TEXT',
+                'features_list': 'TEXT', 
+                'virtual_tour_url': 'VARCHAR(1024)',
+                'map_zoom': 'VARCHAR(10)',
+                'agent_photo': 'VARCHAR(1024)',
+                'agent_bio': 'TEXT'
+            }
+            
+            for col_name, col_type in columns_to_add.items():
+                try:
+                    alter_sql = f"ALTER TABLE property_listings ADD COLUMN {col_name} {col_type}"
+                    cursor.execute(alter_sql)
+                    conn.commit()
+                except Exception as e:
+                    # Column likely already exists, continue
+                    if "Duplicate column name" in str(e):
+                        continue
+                    logger.error(f"Error adding column {col_name}: {str(e)}")
             conn.commit()
         except Exception as e:
             logger.error(f"Error adding columns: {str(e)}")
