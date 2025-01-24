@@ -390,7 +390,8 @@ def save_to_database(data_list):
             land_size=%s, bedrooms=%s, bathrooms=%s, parking_spaces=%s, 
             agent_name=%s, agent_phone=%s, agent_email=%s, latitude=%s, 
             longitude=%s, url=%s, scrape_date=%s,
-            main_image=%s, all_images=%s
+            main_image=%s, all_images=%s, image_captions=%s, features_list=%s,
+            virtual_tour_url=%s, map_zoom=%s, agent_photo=%s, agent_bio=%s
         WHERE property_id=%s
         """
 
