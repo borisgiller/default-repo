@@ -294,7 +294,7 @@ def save_to_database(data_list):
         conn = mysql.connector.connect(**db_config)
         cursor = conn.cursor()
 
-        # Create table if it doesn't exist
+        # Create table if it doesn't exist, or add missing columns
         create_table_sql = """
         CREATE TABLE IF NOT EXISTS property_listings (
             id INT AUTO_INCREMENT PRIMARY KEY,
@@ -331,7 +331,26 @@ def save_to_database(data_list):
             agent_bio TEXT
         )
         """
+        # First try to create the table
         cursor.execute(create_table_sql)
+        
+        # Then check and add any missing columns
+        try:
+            alter_table_sql = """
+            ALTER TABLE property_listings
+            ADD COLUMN IF NOT EXISTS main_image VARCHAR(2048),
+            ADD COLUMN IF NOT EXISTS all_images LONGTEXT,
+            ADD COLUMN IF NOT EXISTS image_captions TEXT,
+            ADD COLUMN IF NOT EXISTS features_list TEXT,
+            ADD COLUMN IF NOT EXISTS virtual_tour_url VARCHAR(1024),
+            ADD COLUMN IF NOT EXISTS map_zoom VARCHAR(10),
+            ADD COLUMN IF NOT EXISTS agent_photo VARCHAR(1024),
+            ADD COLUMN IF NOT EXISTS agent_bio TEXT
+            """
+            cursor.execute(alter_table_sql)
+            conn.commit()
+        except Exception as e:
+            logger.error(f"Error adding columns: {str(e)}")
 
         # Check and insert data
         check_existing_sql = """
