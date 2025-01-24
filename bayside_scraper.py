@@ -31,11 +31,11 @@ session.mount("https://", adapter)
 session.mount("http://", adapter)
 
 # Constants
-TEST_MODE = True  # Set to True to only scrape 1 listing for testing
-MIN_DELAY = 2  # Minimum delay between requests in seconds
-MAX_DELAY = 5  # Maximum delay between requests in seconds
+TEST_MODE = False  # Set to True to only scrape 1 listing for testing
+MIN_DELAY = 0  # Minimum delay between requests in seconds
+MAX_DELAY = 1  # Maximum delay between requests in seconds
 
-MAX_LISTINGS = 1 if TEST_MODE else 35  # Limit listings based on test mode
+MAX_LISTINGS = 1 if TEST_MODE else 50  # Limit listings based on test mode
 
 def extract_gps_coordinates(soup):
     """Extract GPS coordinates from the listing page"""
