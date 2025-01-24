@@ -83,10 +83,10 @@ def scrape_listing(url):
         data['title'] = title_elem.text.strip() if title_elem else ''
         
         # Property ID from listing ID text
-        listing_id_elem = soup.select_one('span[style="font-size: 18pt;"]')
+        listing_id_elem = soup.select_one('#propertyid_display')
         if listing_id_elem:
             id_text = listing_id_elem.text.strip()
-            id_match = re.search(r'ID\s*:\s*(\d+)', id_text)
+            id_match = re.search(r'Property Id\s*:\s*(\d+)', id_text)
             data['property_id'] = id_match.group(1) if id_match else ''
         
         # Price and Currency
@@ -400,10 +400,7 @@ def save_to_database(data_list):
                 # Check if listing already exists
                 cursor.execute(check_existing_sql, (data.get('property_id'),))
                 existing = cursor.fetchone()
-                
-                # Keep fetching until no more results
-                while cursor.nextset():
-                    pass
+                cursor.fetchall()  # Consume any remaining results
                     
                 if existing:
                     # Update existing listing but preserve isnew status
@@ -494,16 +491,13 @@ def save_to_database(data_list):
                 ORDER BY id DESC LIMIT 1
             """)
             result = verify_cursor.fetchone()
-            
-            # Clear any remaining result sets
-            while verify_cursor.nextset():
-                pass
+            verify_cursor.fetchall()  # Consume any remaining results
                 
             if result:
                 print("\nVerification of last saved data:")
-                print(f"Property ID: {result[0]}")
-                print(f"Main image: {result[1]}")
-                print(f"All images length: {result[2]} characters")
+                print(f"Property ID: {result[0] or 'Not found'}")
+                print(f"Main image: {result[1] or 'Not found'}")
+                print(f"All images length: {result[2] or 0} characters")
         finally:
             verify_cursor.close()
 
