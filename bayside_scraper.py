@@ -35,7 +35,7 @@ TEST_MODE = False  # Set to True to only scrape 1 listing for testing
 MIN_DELAY = 0  # Minimum delay between requests in seconds
 MAX_DELAY = 1  # Maximum delay between requests in seconds
 
-MAX_LISTINGS = 1 if TEST_MODE else 50  # Limit listings based on test mode
+MAX_LISTINGS = 1 if TEST_MODE else 500  # Limit listings based on test mode
 
 def extract_gps_coordinates(soup):
     """Extract GPS coordinates from the listing page"""
@@ -270,25 +270,25 @@ def scrape_listing(url):
         logger.error(f"Error scraping listing {url}: {str(e)}")
         raise
 
-def save_to_database(data_list):
-    if not data_list:
+# Database configuration
+db_config = {
+    'host': 'junction.proxy.rlwy.net',
+    'user': 'root',
+    'password': 'rMoaqPfFxeerOSJXPZAXJfZknAiPMSGP',
+    'database': 'railway',
+    'port': 25520
+}
+
+def save_to_database(data):
+    if not data:
         print("No data to save.")
         return
         
     if TEST_MODE:
         print("\nDEBUG: Data being saved to database:")
-        for data in data_list:
-            print(f"\nProperty ID: {data.get('property_id')}")
-            print(f"Main image: {data.get('main_image')}")
-            print(f"Number of additional images: {len(data.get('all_images', []))}")
-
-    db_config = {
-        'host': 'junction.proxy.rlwy.net',
-        'user': 'root',
-        'password': 'rMoaqPfFxeerOSJXPZAXJfZknAiPMSGP',
-        'database': 'railway',
-        'port': 25520
-    }
+        print(f"\nProperty ID: {data.get('property_id')}")
+        print(f"Main image: {data.get('main_image')}")
+        print(f"Number of additional images: {len(data.get('all_images', []))}")
 
     try:
         conn = mysql.connector.connect(**db_config)
@@ -296,12 +296,13 @@ def save_to_database(data_list):
 
         # Create table if it doesn't exist, or add missing columns
         create_table_sql = """
-        CREATE TABLE IF NOT EXISTS property_listings (
+        CREATE TABLE IF NOT EXISTS bayside2_property_listings (
             id INT AUTO_INCREMENT PRIMARY KEY,
             property_id VARCHAR(50),
             title VARCHAR(255),
             status VARCHAR(50),
             isnew BOOLEAN DEFAULT TRUE,
+            processed TINYINT(1) DEFAULT 0,
             price DECIMAL(15,2),
             currency VARCHAR(10),
             description TEXT,
@@ -345,12 +346,13 @@ def save_to_database(data_list):
                 'virtual_tour_url': 'VARCHAR(1024)',
                 'map_zoom': 'VARCHAR(10)',
                 'agent_photo': 'VARCHAR(1024)',
-                'agent_bio': 'TEXT'
+                'agent_bio': 'TEXT',
+                'processed': 'TINYINT(1) DEFAULT 0'
             }
             
             for col_name, col_type in columns_to_add.items():
                 try:
-                    alter_sql = f"ALTER TABLE property_listings ADD COLUMN {col_name} {col_type}"
+                    alter_sql = f"ALTER TABLE bayside2_property_listings ADD COLUMN {col_name} {col_type}"
                     cursor.execute(alter_sql)
                     conn.commit()
                 except Exception as e:
@@ -364,130 +366,128 @@ def save_to_database(data_list):
 
         # Check and insert data
         check_existing_sql = """
-        SELECT property_id, isnew FROM property_listings 
+        SELECT property_id, isnew FROM bayside2_property_listings 
         WHERE property_id = %s
         """
         
         insert_sql = """
-        INSERT INTO property_listings (
+        INSERT INTO bayside2_property_listings (
             property_id, title, status, price, currency, description,
             area, city, state, country, interior_space, land_size,
             bedrooms, bathrooms, parking_spaces, agent_name,
             agent_phone, agent_email, latitude, longitude, url, scrape_date,
-            isnew, main_image, all_images, image_captions, features_list, 
+            isnew, processed, main_image, all_images, image_captions, features_list, 
             virtual_tour_url, map_zoom, agent_photo
         ) VALUES (
             %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
             %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-            %s, %s, %s, %s, %s, %s, %s, %s
+            %s, 0, %s, %s, %s, %s, %s, %s, %s
         )
         """
 
         update_sql = """
-        UPDATE property_listings SET
+        UPDATE bayside2_property_listings SET
             title=%s, status=%s, price=%s, currency=%s, description=%s,
             area=%s, city=%s, state=%s, country=%s, interior_space=%s, 
             land_size=%s, bedrooms=%s, bathrooms=%s, parking_spaces=%s, 
             agent_name=%s, agent_phone=%s, agent_email=%s, latitude=%s, 
             longitude=%s, url=%s, scrape_date=%s,
             main_image=%s, all_images=%s, image_captions=%s, features_list=%s,
-            virtual_tour_url=%s, map_zoom=%s, agent_photo=%s, agent_bio=%s
+            virtual_tour_url=%s, map_zoom=%s, agent_photo=%s, agent_bio=%s,
+            processed=0
         WHERE property_id=%s
         """
 
-        for data in data_list:
-            try:
-                # Check if listing already exists
-                cursor.execute(check_existing_sql, (data.get('property_id'),))
-                existing = cursor.fetchone()
-                cursor.fetchall()  # Consume any remaining results
-                    
-                if existing:
-                    # Update existing listing but preserve isnew status
-                    update_values = (
-                        data.get('title'),
-                        data.get('status'),
-                        float(data.get('price', 0)) if data.get('price') else 0,
-                        data.get('currency'),
-                        data.get('description'),
-                        data.get('area'),
-                        data.get('city'),
-                        data.get('state'),
-                        data.get('country'),
-                        data.get('interior_space'),
-                        data.get('land_size'),
-                        data.get('bedrooms'),
-                        data.get('bathrooms'),
-                        data.get('parking_spaces'),
-                        data.get('agent_name'),
-                        data.get('agent_phone'),
-                        data.get('agent_email'),
-                        data.get('latitude'),
-                        data.get('longitude'),
-                        data.get('url'),
-                        data.get('scrape_date'),
-                        data.get('main_image'),
-                        '\n'.join(data.get('all_images', [])),
-                        '\n'.join(data.get('image_captions', [])),
-                        '\n'.join(data.get('features_list', [])),
-                        data.get('virtual_tour_url', ''),
-                        data.get('map_zoom', ''),
-                        data.get('agent_photo', ''),
-                        data.get('property_id')
-                    )
-                    cursor.execute(update_sql, update_values)
-                else:
-                    # Insert new listing with isnew=True
-                    insert_values = (
-                        data.get('property_id'),
-                        data.get('title'),
-                        data.get('status'),
-                        float(data.get('price', 0)) if data.get('price') else 0,
-                        data.get('currency'),
-                        data.get('description'),
-                        data.get('area'),
-                        data.get('city'),
-                        data.get('state'),
-                        data.get('country'),
-                        data.get('interior_space'),
-                        data.get('land_size'),
-                        data.get('bedrooms'),
-                        data.get('bathrooms'),
-                        data.get('parking_spaces'),
-                        data.get('agent_name'),
-                        data.get('agent_phone'),
-                        data.get('agent_email'),
-                        data.get('latitude'),
-                        data.get('longitude'),
-                        data.get('url'),
-                        data.get('scrape_date'),
-                        True,  # isnew flag
-                        data.get('main_image'),  # main image URL
-                        '\n'.join(data.get('all_images', [])),  # all image URLs as newline-separated string
-                        '\n'.join(data.get('image_captions', [])),  # image captions
-                        '\n'.join(data.get('features_list', [])),  # features list
-                        data.get('virtual_tour_url', ''),  # virtual tour URL
-                        data.get('map_zoom', ''),  # map zoom level
-                        data.get('agent_photo', '')  # agent photo URL
-                    )
-                cursor.execute(insert_sql, insert_values)
+        try:
+            # Check if listing already exists
+            cursor.execute(check_existing_sql, (data.get('property_id'),))
+            existing = cursor.fetchone()
+            cursor.fetchall()  # Consume any remaining results
                 
-                conn.commit()
-                print(f"Successfully saved listing with ID: {data.get('property_id')}")
+            if existing:
+                # Update existing listing but preserve isnew status
+                update_values = (
+                    data.get('title'),
+                    data.get('status'),
+                    float(data.get('price', 0)) if data.get('price') else 0,
+                    data.get('currency'),
+                    data.get('description'),
+                    data.get('area'),
+                    data.get('city'),
+                    data.get('state'),
+                    data.get('country'),
+                    data.get('interior_space'),
+                    data.get('land_size'),
+                    data.get('bedrooms'),
+                    data.get('bathrooms'),
+                    data.get('parking_spaces'),
+                    data.get('agent_name'),
+                    data.get('agent_phone'),
+                    data.get('agent_email'),
+                    data.get('latitude'),
+                    data.get('longitude'),
+                    data.get('url'),
+                    data.get('scrape_date'),
+                    data.get('main_image'),
+                    '\n'.join(data.get('all_images', [])),
+                    '\n'.join(data.get('image_captions', [])),
+                    '\n'.join(data.get('features_list', [])),
+                    data.get('virtual_tour_url', ''),
+                    data.get('map_zoom', ''),
+                    data.get('agent_photo', ''),
+                    data.get('agent_bio', ''),
+                    data.get('property_id')
+                )
+                cursor.execute(update_sql, update_values)
+            else:
+                # Insert new listing with isnew=True
+                insert_values = (
+                    data.get('property_id'),
+                    data.get('title'),
+                    data.get('status'),
+                    float(data.get('price', 0)) if data.get('price') else 0,
+                    data.get('currency'),
+                    data.get('description'),
+                    data.get('area'),
+                    data.get('city'),
+                    data.get('state'),
+                    data.get('country'),
+                    data.get('interior_space'),
+                    data.get('land_size'),
+                    data.get('bedrooms'),
+                    data.get('bathrooms'),
+                    data.get('parking_spaces'),
+                    data.get('agent_name'),
+                    data.get('agent_phone'),
+                    data.get('agent_email'),
+                    data.get('latitude'),
+                    data.get('longitude'),
+                    data.get('url'),
+                    data.get('scrape_date'),
+                    True,  # isnew flag
+                    data.get('main_image'),  # main image URL
+                    '\n'.join(data.get('all_images', [])),  # all image URLs as newline-separated string
+                    '\n'.join(data.get('image_captions', [])),  # image captions
+                    '\n'.join(data.get('features_list', [])),  # features list
+                    data.get('virtual_tour_url', ''),  # virtual tour URL
+                    data.get('map_zoom', ''),  # map zoom level
+                    data.get('agent_photo', '')  # agent photo URL
+                )
+                cursor.execute(insert_sql, insert_values)
+            
+            conn.commit()
+            print(f"Successfully saved listing with ID: {data.get('property_id')}")
 
-            except Exception as e:
-                print(f"Error processing listing {data.get('property_id')}: {str(e)}")
-                conn.rollback()
-                continue
-
-        print(f"\nFinished processing {len(data_list)} listings")
+        except Exception as e:
+            print(f"Error processing listing {data.get('property_id')}: {str(e)}")
+            conn.rollback()
             
         # Verify the last saved data
         try:
             verify_cursor = conn.cursor()
             verify_cursor.execute("""
                 SELECT property_id, main_image, LENGTH(all_images) as img_count 
-                FROM property_listings 
+                FROM bayside2_property_listings 
                 ORDER BY id DESC LIMIT 1
             """)
             result = verify_cursor.fetchone()
@@ -530,9 +530,28 @@ def get_next_page_url(page_url):
     next_page = soup.select_one('li.roundright a')
     return urljoin(page_url, next_page['href']) if next_page else None
 
+def url_exists_in_database(url):
+    """Check if a URL already exists in the database"""
+    try:
+        conn = mysql.connector.connect(**db_config)
+        cursor = conn.cursor()
+        
+        check_sql = "SELECT COUNT(*) FROM bayside2_property_listings WHERE url = %s"
+        cursor.execute(check_sql, (url,))
+        count = cursor.fetchone()[0]
+        
+        return count > 0
+    except Exception as e:
+        logger.error(f"Error checking URL in database: {str(e)}")
+        return False
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
 def main():
     base_url = 'https://baysiderealestate.com/city/puerto-escondido/'
-    all_listings_data = []
     total_listings = 0
     start_time = datetime.now()
     scraped_urls = set()
@@ -547,12 +566,12 @@ def main():
             listing_urls = get_listing_urls(base_url)
             
             for url in listing_urls:
-                if url.startswith('http') and url not in scraped_urls:
+                if url.startswith('http') and url not in scraped_urls and not url_exists_in_database(url):
                     total_listings += 1
                     print(f"Scraping listing {total_listings}: {url}")
                     try:
                         listing_data = scrape_listing(url)
-                        all_listings_data.append(listing_data)
+                        save_to_database(listing_data)  # Save each listing immediately
                         scraped_urls.add(url)
                         elapsed_time = datetime.now() - start_time
                         print(f"Progress: {total_listings} listings scraped. Time elapsed: {elapsed_time}")
@@ -572,12 +591,9 @@ def main():
                 base_url = get_next_page_url(base_url)
 
     except KeyboardInterrupt:
-        print("\nScraping interrupted by user. Saving collected data...")
+        print("\nScraping interrupted by user.")
     
     finally:
-        if all_listings_data:
-            save_to_database(all_listings_data)
-        
         total_time = datetime.now() - start_time
         print(f"\nScraping completed. Total listings scraped: {total_listings}")
         print(f"Total time elapsed: {total_time}")
